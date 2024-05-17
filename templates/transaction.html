@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+
+    <div class="container mt-5">
+        <h1 class="mb-4">Transfer Funds</h1>
+        <form method="post">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="sender">Source Account Name + ID:</label>
+                <select required class="form-control" id="sender" name="sender">
+                    {% for account in accounts %}
+                        <option value="{{ account.id }}">{{ account.name }} - {{account.id}} </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="receiver">Destination Account Name + ID:</label>
+                <select required class="form-control" id="receiver" name="receiver">
+                    {% for account in accounts %}
+                        <option value="{{ account.id }}">{{ account.name }} - {{account.id}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount:</label>
+                <input type="text" class="form-control" id="amount" name="amount" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Transfer</button>
+        </form>
+        <a href="{% url 'accounts:list_accounts' %}" class="btn btn-secondary mt-3">Back to Accounts</a>
+    </div>
+{% endblock %}
