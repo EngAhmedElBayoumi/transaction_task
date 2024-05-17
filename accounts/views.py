@@ -50,8 +50,6 @@ def import_accounts(request):
     return render(request, 'import_accounts.html')
 
 
-
-
 def list_accounts(request):
     accounts = Account.objects.all()
     paginator = Paginator(accounts, 100)
@@ -106,6 +104,10 @@ def transaction(request):
         transaction.save()
         messages.success(request, 'Transaction successful')
     return render(request, 'transaction.html',context)
+
+
+
+
 
 
 def account_search(request):
