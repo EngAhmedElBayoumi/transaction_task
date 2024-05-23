@@ -1,12 +1,12 @@
 from django.shortcuts import render , redirect
 from .models import Account , Transaction
+from django.db import transaction as transactiondb
 import csv
 from django.core.paginator import Paginator
 from django.contrib import messages
 from decimal import Decimal
 
 # Create your views here.
-
 def validate_file(file):
     if not file.name.endswith('.csv'):
         context={'error': 'Invalid file type'}
@@ -64,6 +64,7 @@ def list_accounts(request):
     }
     return render(request, 'list_accounts.html', context)
 
+
 def account_detail(request, slug):
     account = Account.objects.get(slug=slug)
     transactions_send = Transaction.objects.filter(sender=account)
@@ -71,43 +72,64 @@ def account_detail(request, slug):
     context={'account': account, 'send': transactions_send, 'receive': transactions_receive}
     return render(request, 'account_detail.html', context)
 
+
 def transaction(request):
-    #get all accounts
+    # get all accounts
     accounts = Account.objects.all()
-    context={'accounts': accounts}
-    
+    context = {'accounts': accounts}
+
     if request.method == 'POST':
-        sender = Account.objects.get(id=request.POST['sender'])
-        receiver = Account.objects.get(id=request.POST['receiver'])
+        sender_id = request.POST['sender']
+        receiver_id = request.POST['receiver']
         amount = request.POST['amount']
-        
-        if not amount and not sender and not receiver and amount == '0':
+
+        if not sender_id or not receiver_id or not amount or amount == '0':
             messages.error(request, 'All fields are required')
             return redirect('accounts:transaction')
-        
-        if sender == receiver:
+
+        if sender_id == receiver_id:
             messages.error(request, 'You cannot send money to yourself')
             return redirect('accounts:transaction')
+
         try:
             amount = Decimal(amount)
         except:
             messages.error(request, 'Invalid amount')
             return redirect('accounts:transaction')
-        if sender.balance < amount:
-            messages.error(request, 'this account has insufficient funds')
-            return redirect('accounts:transaction')
-        transaction = Transaction(
-            sender=sender,
-            receiver=receiver,
-            amount=amount
-        )
-        transaction.save()
-        messages.success(request, 'Transaction successful')
-    return render(request, 'transaction.html',context)
 
+        try:
+            with transactiondb.atomic():
+                # Lock the sender and receiver accounts
+                sender = Account.objects.select_for_update().get(id=sender_id)
+                receiver = Account.objects.select_for_update().get(id=receiver_id)
 
+                if sender.balance < amount:
+                    messages.error(request, 'This account has insufficient funds')
+                    return redirect('accounts:transaction')
 
+                # Perform the transaction
+                sender.balance -= amount
+                receiver.balance += amount
 
+                sender.save()
+                receiver.save()
+
+                # Create the transaction record
+                new_transaction = Transaction(
+                    sender=sender,
+                    receiver=receiver,
+                    amount=amount,
+                )
+                new_transaction.save()
+
+                messages.success(request, 'Transaction successful')
+
+        except Account.DoesNotExist:
+            messages.error(request, 'Account not found')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+
+    return render(request, 'transaction.html', context)
 
 
 def account_search(request):

@@ -36,11 +36,8 @@ class Transaction(models.Model):
     class Meta:
         ordering = ['-date']
     def save(self, *args, **kwargs):
-        self.sender.balance -= self.amount
-        self.receiver.balance += self.amount
-        self.sender.save()
-        self.receiver.save()
-        self.date = timezone.now()
+        if not self.date:
+            self.date = timezone.now()
         
         super().save(*args, **kwargs)
     
