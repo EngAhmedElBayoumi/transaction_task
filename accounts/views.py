@@ -74,7 +74,6 @@ def account_detail(request, slug):
 
 
 def transaction(request):
-    # get all accounts
     accounts = Account.objects.all()
     context = {'accounts': accounts}
 
@@ -83,7 +82,7 @@ def transaction(request):
         receiver_id = request.POST['receiver']
         amount = request.POST['amount']
 
-        if not sender_id or not receiver_id or not amount or amount == '0':
+        if not sender_id or not receiver_id or not amount or amount <= '0':
             messages.error(request, 'All fields are required')
             return redirect('accounts:transaction')
 
