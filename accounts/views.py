@@ -67,8 +67,8 @@ def list_accounts(request):
 
 def account_detail(request, slug):
     account = Account.objects.get(slug=slug)
-    transactions_send = Transaction.objects.filter(sender=account)
-    transactions_receive = Transaction.objects.filter(receiver=account)
+    transactions_send = Transaction.objects.filter(sender=account).select_related('receiver')
+    transactions_receive = Transaction.objects.filter(receiver=account).select_related('sender')
     context={'account': account, 'send': transactions_send, 'receive': transactions_receive}
     return render(request, 'account_detail.html', context)
 
